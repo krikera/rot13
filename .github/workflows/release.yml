@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+
+      - name: Run Code Analysis & Tests
+        run: |
+          go vet ./...
+          go test -v -race ./...
+
+      - name: Extract Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build Matrix Binaries
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          mkdir -p dist
+
+          # Linux amd64 & arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o dist/rot13-linux-amd64 ./cmd/rot13
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o dist/rot13-linux-arm64 ./cmd/rot13
+
+          # macOS (Darwin) amd64 & arm64
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o dist/rot13-darwin-amd64 ./cmd/rot13
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o dist/rot13-darwin-arm64 ./cmd/rot13
+
+          # Windows amd64
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o dist/rot13-windows-amd64.exe ./cmd/rot13
+
+      - name: Build Debian Packages
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          ./scripts/build_deb.sh "${VERSION}" amd64
+          ./scripts/build_deb.sh "${VERSION}" arm64
+
+      - name: Generate Checksums
+        run: |
+          cd dist
+          sha256sum rot13-* *.deb > checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rot13-linux-amd64
+            dist/rot13-linux-arm64
+            dist/rot13-darwin-amd64
+            dist/rot13-darwin-arm64
+            dist/rot13-windows-amd64.exe
+            dist/*.deb
+            dist/checksums.txt
+          generate_release_notes: true

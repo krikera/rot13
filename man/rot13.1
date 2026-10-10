@@ -1,0 +1,63 @@
+.TH ROT13 1 "October 2026" "rot13 0.1.0" "User Commands"
+.SH NAME
+rot13 \- ROT13 encoder and decoder
+.SH SYNOPSIS
+.B rot13
+[\fIOPTIONS\fR] [\fIFILE\fR...]
+.SH DESCRIPTION
+.B rot13
+encodes or decodes text using the Caesar ROT13 symmetric substitution cipher.
+Because ROT13 is symmetric (with an alphabet of 26 letters), applying the transformation
+twice restores the original text.
+.PP
+If no \fIFILE\fR is specified, or when \fIFILE\fR is \fB\-\fR, input is read from standard input.
+When multiple files are specified, they are processed in order and concatenated to standard output.
+.SH OPTIONS
+.TP
+\fB\-o\fR \fIFILE\fR
+Write output directly to \fIFILE\fR instead of standard output.
+.TP
+\fB\-i\fR
+Modify input file(s) in-place using atomic temporary file replacement while preserving permissions.
+Symbolic links are resolved and their targets are updated.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Display version information and exit.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display usage and help information and exit.
+.SH EXAMPLES
+.PP
+Encode or decode a file to terminal:
+.RS
+.B rot13 document.txt
+.RE
+.PP
+Stream input via pipe:
+.RS
+.B echo "Hello World" | rot13
+.RE
+.PP
+Modify file in-place:
+.RS
+.B rot13 \-i notes.txt
+.RE
+.PP
+Direct output to a specific target file:
+.RS
+.B rot13 \-o encoded.txt secret.txt
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Success. Also returned upon receiving a broken pipe (\fBSIGPIPE\fR) in downstream pipelines.
+.TP
+.B 1
+General error (file not found, directory passed as input, invalid arguments).
+.TP
+.B 130
+Process terminated by interruption signal (\fBSIGINT\fR / Ctrl+C).
+.SH SEE ALSO
+.BR tr (1),
+.BR cat (1),
+.BR sed (1)
